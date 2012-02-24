@@ -1,0 +1,106 @@
+import std;
+
+// Socket and sleep counter.
+TcpSocket tcp("");
+Int sleepCount = 0;
+Bool connected = False;
+
+// Internal IRC strings.
+String strUser;
+String strNick;
+String strJoin;
+String strPing;
+
+// Regular expressions.
+Regex reLookingHostname("^:[^ ]+ NOTICE \* :[^ ]+ Looking");
+Regex reWelcome("^:[^ ]+ 001 [^ ]+ :Welcome.*");
+
+Void setSettings(String nick, String name, String channel) {
+	// USER a b c :d
+	strUser = "USER " + nick + " " + nick + " " + nick + " :" + name + "\n";
+	
+	// NICK a
+	strNick = "NICK " + nick + "\n";
+	
+	// JOIN a
+	strJoin = "JOIN " + channel + "\n";
+	
+	// PING a
+	strPing = "PING " + nick + "\n";
+}
+
+Bool connect(String host, Int port) {
+	tcp.setHost(host);
+	tcp.setPort(port);
+	tcp.setTimeout(500);
+
+	tcp.connect();
+	return (tcp.good());
+}
+
+Void authenticate() {
+	tcp.send(strUser.toByteArray());
+	tcp.send(strNick.toByteArray());
+}
+
+Void join() {
+	tcp.send(strJoin.toByteArray());
+}
+
+Void keepAlive() {
+	tcp.send(strPing.toByteArray());
+}
+
+Void process(String line) {
+	if (reLookingHostname.matches(line)) {
+		/* Looking up for your hostname... */
+		println("* Looking up for your hostname...");
+		authenticate();
+	} else if (reWelcome.matches(line)) {
+		/* 001 Welcome */
+		println("* 001 Welcome.");
+		connected = True;
+		join();		
+	} else {
+		println("No match: " + line);
+	}
+}
+
+Void loop() {
+	while (tcp.isOpen()) {
+		if (tcp.poll()) {
+			String data = "";
+
+			// Read all data until there's nothing more to read.
+			while (tcp.poll()) {
+				println("tcp.poll() returned true.");
+				Array<Byte> buffer = tcp.receive(1024);
+				if (tcp.good()) {
+					String bufferStr(buffer);
+					data = data + bufferStr;
+				} else {
+					break;
+				}
+				println("data added. polling more data.");
+			}
+			println("data polled");
+			
+			// Process the data: strings are splitted by a \n.
+			Array<String> lines = data.replace("\r", "").split("\n");
+			for (Int i = 0; i < lines.size(); i++) {
+				if (lines[i].trim() != "") {
+					process(lines[i].trim());
+				}				
+			}
+		}
+
+		// Sleep for 1s (low the CPU usage).
+		sleep(1000);
+		sleepCount++;
+		
+		// If we already sleep for more than 60s, send keep-alive ping.
+		if (sleepCount >= 60) {
+			keepAlive();
+		}
+	}
+}

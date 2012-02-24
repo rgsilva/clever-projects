@@ -1,0 +1,27 @@
+/*
+ * Clever bot - the first IRC bot created on Clever language
+ * https://github.com/clever-lang/clever
+ *
+ * Ricardo Gomes da Silva/rgsilva
+ * rg0s @ #clever
+ */
+
+// Settings
+String server = "213.92.8.4";		// Host address (IP)
+Int port = 6666;					// Host port
+String nick = "clv";				// Bot nickname
+String realname = "#clever bot";	// Bot realname
+String channel = "#clever-pt";		// Bot channels
+
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+
+import 'irc.clv' as irc;
+
+if (irc::connect(server, port)) {
+	irc::setSettings(nick, realname, channel);
+	
+	irc::loop();
+} else {
+	println("connect() failed.");
+}
