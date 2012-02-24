@@ -7,11 +7,11 @@
  */
 
 // Settings
-String server = "213.92.8.4";		// Host address (IP)
-Int port = 6666;					// Host port
-String nick = "clv";				// Bot nickname
-String realname = "#clever bot";	// Bot realname
-String channel = "#clever-pt";		// Bot channels
+const String server = "213.92.8.4";				// Host address (IP)
+const Int port = 6666;							// Host port
+const String nick = "clv";						// Bot nickname
+const String realname = "#clever bot";			// Bot realname
+const String channel = "#clever-pt";			// Bot channels
 
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
