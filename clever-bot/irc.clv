@@ -1,9 +1,9 @@
-import std;
+import std.*;
 
 // Socket and sleep counter.
 TcpSocket tcp("");
 Int sleepCount = 0;
-Bool connected = False;
+Bool connected = false;
 
 // Internal IRC strings.
 String strUser;
@@ -11,7 +11,7 @@ String strNick;
 String strJoin;
 String strPing;
 
-Void setSettings(String nick, String name, String channel) {
+Void setSettings(const String nick, const String name, const String channel) {
 	// USER a b c :d
 	strUser = "USER " + nick + " " + nick + " " + nick + " :" + name + "\n";
 	
@@ -25,7 +25,7 @@ Void setSettings(String nick, String name, String channel) {
 	strPing = "PING " + nick + "\n";
 }
 
-Bool connect(String host, Int port) {
+Bool connect(const String host, const Int port) {
 	tcp.setHost(host);
 	tcp.setPort(port);
 	tcp.setTimeout(500);
@@ -55,7 +55,7 @@ Void process(String line) {
 	} else if (/^:[^ ]+ 001 [^ ]+ :Welcome.*/.matches(line)) {
 		/* 001 Welcome */
 		println("* 001 Welcome.");
-		connected = True;
+		connected = true;
 		join();
 	} else if (/^:[^ ]+ PRIVMSG #[^ ]+ :.*/.matches(line)) {
 		/* PRIVMSG channel */
