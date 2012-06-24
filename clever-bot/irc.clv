@@ -31,7 +31,13 @@ Bool connect(const String host, const Int port) {
 	tcp.setTimeout(500);
 
 	tcp.connect();
-	return (tcp.good());
+	
+	if (!tcp.good()) {
+		println("[" + tcp.getError().toString() + "] " + tcp.getErrorMessage());
+		return false;
+	} else {
+		return true;
+	}
 }
 
 Void authenticate() {

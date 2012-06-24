@@ -8,8 +8,8 @@
 
 // Settings
 const String server = "chat.freenode.net";		// Host address
-const Int port = 6666;							// Host port
-const String nick = "clv";						// Bot nickname
+const Int port = 6667;							// Host port
+const String nick = "clvbot";					// Bot nickname
 const String realname = "#clever bot";			// Bot realname
 const String channel = "#clever-pt";			// Bot channels
 
