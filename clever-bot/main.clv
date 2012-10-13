@@ -7,6 +7,7 @@
  */
 
 // Settings
+
 const String server = "chat.freenode.net";		// Host address
 const Int port = 6667;							// Host port
 const String nick = "clvbot";					// Bot nickname
@@ -14,14 +15,46 @@ const String realname = "#clever bot";			// Bot realname
 const String channel = "#clever-pt";			// Bot channels
 
 // ------------------------------------------------------------------
-// ------------------------------------------------------------------
 
+import std.*;
 import 'irc.clv' as irc;
 
+// ------------------------------------------------------------------
+
+// Events code.
+
+Void onConnected() {
+	// Authenticate.
+	irc::setUser(nick, nick, nick, realname);
+	irc::nick(nick);	
+}
+
+Void onAuthenticated() {
+	irc::join(channel);
+}
+
+Void onChannelMessage(String channel, String nick, String message) {
+}
+
+Void onPrivateMessage(String nick, String message) {
+}
+
+irc::setOnConnected(onConnected);
+irc::setOnAuthenticated(onAuthenticated);
+irc::setOnChannelMessage(onChannelMessage);
+irc::setOnPrivateMessage(onPrivateMessage);
+
+// ------------------------------------------------------------------
+
+// And so it begins...
+
+// Debug setting (0 = no debug, 1 = IRC messages, 2 = Socket + IRC).
+irc::setDebug(0);
+
+// Connect to the server...
 if (irc::connect(server, port)) {
-	irc::setSettings(nick, realname, channel);
-	
+	// Loop.
 	irc::loop();
 } else {
-	println("connect() failed.");
+	println("Error: connect() failed.");
 }

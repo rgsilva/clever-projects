@@ -1,28 +1,75 @@
 import std.*;
 
+// Debug settings (0 = no debug, 1 = IRC debug, 2 = Full debug)
+Int debugLevel = 0;
+
 // Socket and sleep counter.
 TcpSocket tcp("");
 Int sleepCount = 0;
 Bool connected = false;
 
-// Internal IRC strings.
-String strUser;
-String strNick;
-String strJoin;
-String strPing;
+// ---------------------------------------------
+// Callback and IRC setup.
 
-Void setSettings(const String nick, const String name, const String channel) {
-	// USER a b c :d
-	strUser = "USER " + nick + " " + nick + " " + nick + " :" + name + "\n";
-	
-	// NICK a
-	strNick = "NICK " + nick + "\n";
-	
-	// JOIN a
-	strJoin = "JOIN " + channel + "\n";
-	
-	// PING a
-	strPing = "PING " + nick + "\n";
+// Void onConnected()
+Function<Void> onConnected;
+Void setOnConnected(Function<Void> f) {
+	onConnected = f;
+}
+
+// Void onAuthenticated()
+Function<Void> onAuthenticated;
+Void setOnAuthenticated(Function<Void> f) {
+	onAuthenticated = f;
+}
+
+// Void onChannelMessage(String channel, String nick, String message)
+Function<Void, String, String, String> onChannelMessage;
+Void setOnChannelMessage(Function<Void, String, String, String> f) {
+	onChannelMessage = f;
+}
+
+// Void onPrivateMessage(String nick, String message)
+Function<Void, String, String> onPrivateMessage;
+Void setOnPrivateMessage(Function<Void, String, String> f) {
+	onPrivateMessage = f;
+}
+
+// ------------------------------------------------------------------
+
+// 0 - before connection
+
+Void setDebug(const Int level) {
+	debugLevel = level;
+}
+
+// 1 - after connected, but not authenticated
+
+Void setUser(const String username, const String hostname, const String servername, const String realname) {
+	String strUser = "USER " + username + " " + hostname + " " + servername + " :" + realname + "\n";
+	tcp.send(strUser.toByteArray());
+}
+
+Void nick(const String nick) {
+	String strNick = "NICK " + nick + "\n";
+	tcp.send(strNick.toByteArray());
+}
+
+// 2 - after authenticated
+
+Void join(const String channel) {
+	String strJoin = "JOIN " + channel + "\n";
+	tcp.send(strJoin.toByteArray());
+}
+
+
+// ------------------------------------------------------------------
+// Internal code.
+
+Void debug(const Int level, const String message) {
+	if (debugLevel >= level) {
+		println("(" + level.toString() + ") " + message);
+	}
 }
 
 Bool connect(const String host, const Int port) {
@@ -40,48 +87,43 @@ Bool connect(const String host, const Int port) {
 	}
 }
 
-Void authenticate() {
-	tcp.send(strUser.toByteArray());
-	tcp.send(strNick.toByteArray());
-}
-
-Void join() {
-	tcp.send(strJoin.toByteArray());
-}
-
 Void keepAlive() {
+	String strPing = "PING " + nick + "\n";
 	tcp.send(strPing.toByteArray());
 }
 
 Void process(String line) {
 	if (/^:[^ ]+ NOTICE \* :[^ ]+ Looking/.matches(line)) {
 		/* Looking up for your hostname... */
-		println("* Looking up for your hostname...");
-		authenticate();
+		debug(1, "Looking up for your hostname...");
+		
+		onConnected.call();
 	} else if (/^:[^ ]+ 001 [^ ]+ :Welcome.*/.matches(line)) {
 		/* 001 Welcome */
-		println("* 001 Welcome.");
+		debug(1, "001 Welcome.");
 		connected = true;
-		join();
+		
+		// We authenticated.
+		onAuthenticated.call();
 	} else if (/^:[^ ]+ PRIVMSG #[^ ]+ :.*/.matches(line)) {
-		/* PRIVMSG channel */
+		/* PRIVMSG to a channel */
 		//String s = "PRIVMSG #clever-pt :[debug shit] line = \"" + line + "\"\n";
 		//tcp.send(s.toByteArray());
 	} else {
-		println("No match: " + line);
+		debug(1, "No match: " + line);
 	}
 }
 
 Void loop() {
 	while (tcp.isOpen()) {
-		println("tcp.isOpen() returned true.");
+		debug(2, "tcp.isOpen() returned true.");
 		if (tcp.poll()) {
-			println("tcp.poll() returned true.");
+			debug(2, "tcp.poll() returned true.");
 			String data = "";
 
 			// Read all data until there's nothing more to read.
 			while (tcp.poll()) {
-				println("tcp.poll() returned true.");
+				debug(2, "tcp.poll() returned true.");
 				Array<Byte> buffer = tcp.receive(1024);
 				if (tcp.good()) {
 					String bufferStr(buffer);
@@ -89,9 +131,9 @@ Void loop() {
 				} else {
 					break;
 				}
-				println("data added. polling more data.");
+				debug(2, "Data added. Polling more data...");
 			}
-			println("data polled");
+			debug(2, "Data polled.");
 			
 			// Process the data: strings are splitted by a \n.
 			Array<String> lines = data.replace("\r", "").split("\n");
@@ -108,9 +150,9 @@ Void loop() {
 		
 		// If we already sleep for more than 60s, send keep-alive ping.
 		if (connected && sleepCount >= 60) {
-			println("** Sending keep-alive **");
+			debug(1, "Sending keep-alive.");
 			keepAlive();
+			sleepCount = 0;
 		}
-		println("sleepCount = " + sleepCount.toString());
 	}
 }
