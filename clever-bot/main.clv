@@ -26,7 +26,7 @@ import 'irc.clv' as irc;
 Void onConnected() {
 	// Authenticate.
 	irc::setUser(nick, nick, nick, realname);
-	irc::nick(nick);	
+	irc::setNick(nick);	
 }
 
 Void onAuthenticated() {
@@ -34,6 +34,7 @@ Void onAuthenticated() {
 }
 
 Void onChannelMessage(String channel, String nick, String message) {
+	irc::privmsg(channel, "O usuário " + nick + " disse no canal " + channel + "'" + message + "'.");
 }
 
 Void onPrivateMessage(String nick, String message) {
@@ -49,7 +50,7 @@ irc::setOnPrivateMessage(onPrivateMessage);
 // And so it begins...
 
 // Debug setting (0 = no debug, 1 = IRC messages, 2 = Socket + IRC).
-irc::setDebug(0);
+irc::setDebug(2);
 
 // Connect to the server...
 if (irc::connect(server, port)) {

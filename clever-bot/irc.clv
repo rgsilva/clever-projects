@@ -50,7 +50,7 @@ Void setUser(const String username, const String hostname, const String serverna
 	tcp.send(strUser.toByteArray());
 }
 
-Void nick(const String nick) {
+Void setNick(const String nick) {
 	String strNick = "NICK " + nick + "\n";
 	tcp.send(strNick.toByteArray());
 }
@@ -62,9 +62,24 @@ Void join(const String channel) {
 	tcp.send(strJoin.toByteArray());
 }
 
+Void privmsg(const String target, const String msg) {
+	String strPrivmsg = "PRIVMSG " + target + " :" + msg + "\n";
+	print(strPrivmsg);
+	tcp.send(strPrivmsg.toByteArray());
+}
 
 // ------------------------------------------------------------------
 // Internal code.
+
+String extractNickname(const String str) {
+	Regex re("^([^ ])+![^ ]+@[^ ]+");
+
+	if (re.matches(str)) {
+		return re.group(0);
+	} else {
+		return "";
+	}
+}
 
 Void debug(const Int level, const String message) {
 	if (debugLevel >= level) {
@@ -88,27 +103,57 @@ Bool connect(const String host, const Int port) {
 }
 
 Void keepAlive() {
-	String strPing = "PING " + nick + "\n";
+	String strPing = "PING\n";
 	tcp.send(strPing.toByteArray());
 }
 
 Void process(String line) {
-	if (/^:[^ ]+ NOTICE \* :[^ ]+ Looking/.matches(line)) {
+	Regex reLooking("^:[^ ]+ NOTICE \* :[^ ]+ Looking");
+	Regex reWelcome("^:[^ ]+ 001 [^ ]+ :Welcome.*");
+	Regex rePrivmsg("^:([^ ]+) PRIVMSG ([^ ]+) :(.*)");
+
+	if (reLooking.matches(line)) {
 		/* Looking up for your hostname... */
 		debug(1, "Looking up for your hostname...");
 		
-		onConnected.call();
-	} else if (/^:[^ ]+ 001 [^ ]+ :Welcome.*/.matches(line)) {
+		// We are connected.
+		if (onConnected.isValid()) {
+			onConnected.call();
+		}
+	} else if (reWelcome.matches(line)) {
 		/* 001 Welcome */
 		debug(1, "001 Welcome.");
 		connected = true;
 		
 		// We authenticated.
-		onAuthenticated.call();
-	} else if (/^:[^ ]+ PRIVMSG #[^ ]+ :.*/.matches(line)) {
-		/* PRIVMSG to a channel */
-		//String s = "PRIVMSG #clever-pt :[debug shit] line = \"" + line + "\"\n";
-		//tcp.send(s.toByteArray());
+		if (onAuthenticated.isValid()) {
+			onAuthenticated.call();
+		}
+	} else if (rePrivmsg.matches(line)) {
+		/* PRIVMSG to a channel or user */
+		
+		
+		
+		String user = extractNickname(rePrivmsg.group(0));
+		String target = rePrivmsg.group(1);
+		String msg = rePrivmsg.group(2);
+
+		println("Received: " + line);
+		println("User: " + user);
+		println("Target: " + target);
+		println("Message: " + msg);
+
+		if (user != "") {
+			if (target[0] == '#') {
+				if (onChannelMessage.isValid()) {
+					onChannelMessage.call(target, user, msg);
+				}
+			} else {
+				if (onPrivateMessage.isValid()) {
+					onPrivateMessage.call(user, msg);
+				}
+			}
+		}
 	} else {
 		debug(1, "No match: " + line);
 	}
