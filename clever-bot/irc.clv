@@ -64,18 +64,17 @@ Void join(const String channel) {
 
 Void privmsg(const String target, const String msg) {
 	String strPrivmsg = "PRIVMSG " + target + " :" + msg + "\n";
-	print(strPrivmsg);
 	tcp.send(strPrivmsg.toByteArray());
 }
 
 // ------------------------------------------------------------------
 // Internal code.
 
-String extractNickname(const String str) {
-	Regex re("^([^ ])+![^ ]+@[^ ]+");
-
-	if (re.matches(str)) {
-		return re.group(0);
+String extractUser(const String str) {
+	Auto blocks = str.split("!");
+	
+	if (blocks.size() > 1) {
+		return blocks[0];
 	} else {
 		return "";
 	}
@@ -93,7 +92,7 @@ Bool connect(const String host, const Int port) {
 	tcp.setTimeout(500);
 
 	tcp.connect();
-	
+
 	if (!tcp.good()) {
 		println("[" + tcp.getError().toString() + "] " + tcp.getErrorMessage());
 		return false;
@@ -124,33 +123,28 @@ Void process(String line) {
 		/* 001 Welcome */
 		debug(1, "001 Welcome.");
 		connected = true;
-		
+
 		// We authenticated.
 		if (onAuthenticated.isValid()) {
 			onAuthenticated.call();
 		}
 	} else if (rePrivmsg.matches(line)) {
 		/* PRIVMSG to a channel or user */
-		
-		
-		
-		String user = extractNickname(rePrivmsg.group(0));
-		String target = rePrivmsg.group(1);
-		String msg = rePrivmsg.group(2);
+		//String user = extractUser(rePrivmsg.group(0));
+		//String target = rePrivmsg.group(1);
+		//String msg = rePrivmsg.group(2);
 
-		println("Received: " + line);
-		println("User: " + user);
-		println("Target: " + target);
-		println("Message: " + msg);
+		println(line);
 
 		if (user != "") {
 			if (target[0] == '#') {
 				if (onChannelMessage.isValid()) {
-					onChannelMessage.call(target, user, msg);
+					//onChannelMessage.call(target, user, msg);
+					onChannelMessage.call("#clever-pt", "user", "msg");
 				}
 			} else {
 				if (onPrivateMessage.isValid()) {
-					onPrivateMessage.call(user, msg);
+					//onPrivateMessage.call(user, msg);
 				}
 			}
 		}

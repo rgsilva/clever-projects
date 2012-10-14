@@ -10,7 +10,7 @@
 
 const String server = "chat.freenode.net";		// Host address
 const Int port = 6667;							// Host port
-const String nick = "clvbot";					// Bot nickname
+const String nick = "clvbot123";					// Bot nickname
 const String realname = "#clever bot";			// Bot realname
 const String channel = "#clever-pt";			// Bot channels
 
@@ -24,7 +24,6 @@ import 'irc.clv' as irc;
 // Events code.
 
 Void onConnected() {
-	// Authenticate.
 	irc::setUser(nick, nick, nick, realname);
 	irc::setNick(nick);	
 }
@@ -34,10 +33,11 @@ Void onAuthenticated() {
 }
 
 Void onChannelMessage(String channel, String nick, String message) {
-	irc::privmsg(channel, "O usuário " + nick + " disse no canal " + channel + "'" + message + "'.");
+	irc::privmsg(channel, "O usuário " + nick + " disse no canal " + channel + " '" + message + "'.");
 }
 
 Void onPrivateMessage(String nick, String message) {
+	println("private message!");
 }
 
 irc::setOnConnected(onConnected);
