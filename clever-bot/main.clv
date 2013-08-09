@@ -8,54 +8,52 @@
 
 // Settings
 
-const String server = "chat.freenode.net";		// Host address
-const Int port = 6667;							// Host port
-const String nick = "clvbot123";					// Bot nickname
-const String realname = "#clever bot";			// Bot realname
-const String channel = "#clever-pt";			// Bot channels
+const SERVER = "chat.freenode.net";		// Host address
+const PORT = 6667;				// Host port
+const NICK = "clvbot123";			// Bot nickname
+const REALNAME = "#clever bot";			// Bot realname
+const CHANNEL = "#clever-pt";			// Bot channels
 
 // ------------------------------------------------------------------
 
 import std.*;
-import 'irc.clv' as irc;
+import irc.*;
+
+var irc = Irc.new();
 
 // ------------------------------------------------------------------
 
 // Events code.
 
-Void onConnected() {
-	irc::setUser(nick, nick, nick, realname);
-	irc::setNick(nick);	
+function onConnected() {
+	irc.user(NICK, NICK, NICK, REALNAME);
+	irc.nick(NICK);
 }
 
-Void onAuthenticated() {
-	irc::join(channel);
+function onAuthenticated() {
+	irc.join(CHANNEL);
 }
 
-Void onChannelMessage(String channel, String nick, String message) {
-	irc::privmsg(channel, "O usuário " + nick + " disse no canal " + channel + " '" + message + "'.");
+function onChannelMessage(channel, nick, message) {
+	irc.privmsg(channel, "O usuário " + nick + " disse no canal " + channel + " '" + message + "'.");
 }
 
-Void onPrivateMessage(String nick, String message) {
-	println("private message!");
+function onPrivateMessage(nick, message) {
+	io:println("private message!");
 }
-
-irc::setOnConnected(onConnected);
-irc::setOnAuthenticated(onAuthenticated);
-irc::setOnChannelMessage(onChannelMessage);
-irc::setOnPrivateMessage(onPrivateMessage);
 
 // ------------------------------------------------------------------
 
-// And so it begins...
+irc.onConnected = onConnected;
+irc.onAuthenticated = onAuthenticated;
+irc.onChannelMessage = onChannelMessage;
+irc.onPrivateMessage = onPrivateMessage;
 
-// Debug setting (0 = no debug, 1 = IRC messages, 2 = Socket + IRC).
-irc::setDebug(2);
+irc.verbose = 2;
 
-// Connect to the server...
-if (irc::connect(server, port)) {
+if (irc.connect(SERVER, PORT)) {
 	// Loop.
-	irc::loop();
+	irc.loop();
 } else {
-	println("Error: connect() failed.");
+	io:println("Error: connect() failed.");
 }

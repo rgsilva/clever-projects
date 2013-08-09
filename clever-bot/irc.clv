@@ -1,197 +1,180 @@
 import std.*;
 
-// Debug settings (0 = no debug, 1 = IRC debug, 2 = Full debug)
-Int debugLevel = 0;
+class Irc {
+	// ==================================
+	// == Private code
 
-// Socket and sleep counter.
-TcpSocket tcp("");
-Int sleepCount = 0;
-Bool connected = false;
+	// Internal variables
 
-// ---------------------------------------------
-// Callback and IRC setup.
+	private var socket;
+	private var sleepCount;
+	private var connected;
 
-// Void onConnected()
-Function<Void> onConnected;
-Void setOnConnected(Function<Void> f) {
-	onConnected = f;
-}
+	// Internal functions
 
-// Void onAuthenticated()
-Function<Void> onAuthenticated;
-Void setOnAuthenticated(Function<Void> f) {
-	onAuthenticated = f;
-}
-
-// Void onChannelMessage(String channel, String nick, String message)
-Function<Void, String, String, String> onChannelMessage;
-Void setOnChannelMessage(Function<Void, String, String, String> f) {
-	onChannelMessage = f;
-}
-
-// Void onPrivateMessage(String nick, String message)
-Function<Void, String, String> onPrivateMessage;
-Void setOnPrivateMessage(Function<Void, String, String> f) {
-	onPrivateMessage = f;
-}
-
-// ------------------------------------------------------------------
-
-// 0 - before connection
-
-Void setDebug(const Int level) {
-	debugLevel = level;
-}
-
-// 1 - after connected, but not authenticated
-
-Void setUser(const String username, const String hostname, const String servername, const String realname) {
-	String strUser = "USER " + username + " " + hostname + " " + servername + " :" + realname + "\n";
-	tcp.send(strUser.toByteArray());
-}
-
-Void setNick(const String nick) {
-	String strNick = "NICK " + nick + "\n";
-	tcp.send(strNick.toByteArray());
-}
-
-// 2 - after authenticated
-
-Void join(const String channel) {
-	String strJoin = "JOIN " + channel + "\n";
-	tcp.send(strJoin.toByteArray());
-}
-
-Void privmsg(const String target, const String msg) {
-	String strPrivmsg = "PRIVMSG " + target + " :" + msg + "\n";
-	tcp.send(strPrivmsg.toByteArray());
-}
-
-// ------------------------------------------------------------------
-// Internal code.
-
-String extractUser(const String str) {
-	Auto blocks = str.split("!");
-	
-	if (blocks.size() > 1) {
-		return blocks[0];
-	} else {
-		return "";
-	}
-}
-
-Void debug(const Int level, const String message) {
-	if (debugLevel >= level) {
-		println("(" + level.toString() + ") " + message);
-	}
-}
-
-Bool connect(const String host, const Int port) {
-	tcp.setHost(host);
-	tcp.setPort(port);
-	tcp.setTimeout(500);
-
-	tcp.connect();
-
-	if (!tcp.good()) {
-		println("[" + tcp.getError().toString() + "] " + tcp.getErrorMessage());
-		return false;
-	} else {
-		return true;
-	}
-}
-
-Void keepAlive() {
-	String strPing = "PING\n";
-	tcp.send(strPing.toByteArray());
-}
-
-Void process(String line) {
-	Regex reLooking("^:[^ ]+ NOTICE \* :[^ ]+ Looking");
-	Regex reWelcome("^:[^ ]+ 001 [^ ]+ :Welcome.*");
-	Regex rePrivmsg("^:([^ ]+) PRIVMSG ([^ ]+) :(.*)");
-
-	if (reLooking.matches(line)) {
-		/* Looking up for your hostname... */
-		debug(1, "Looking up for your hostname...");
-		
-		// We are connected.
-		if (onConnected.isValid()) {
-			onConnected.call();
+	private function extractUser(str) {
+		var blocks = str.split("!");
+		if (blocks.size() > 1) {
+			return blocks[0];
+		} else {
+			return "";
 		}
-	} else if (reWelcome.matches(line)) {
-		/* 001 Welcome */
-		debug(1, "001 Welcome.");
-		connected = true;
+	}
 
-		// We authenticated.
-		if (onAuthenticated.isValid()) {
-			onAuthenticated.call();
+	private function debug(level, message) {
+		if (this.verbose >= level) {
+			io:println("(" + level + ") " + message);
 		}
-	} else if (rePrivmsg.matches(line)) {
-		/* PRIVMSG to a channel or user */
-		//String user = extractUser(rePrivmsg.group(0));
-		//String target = rePrivmsg.group(1);
-		//String msg = rePrivmsg.group(2);
+	}
 
-		println(line);
+	private function keepAlive() {
+		var s = "PING\n";
+		this.socket.send(s);
+	}
 
-		if (user != "") {
-			if (target[0] == '#') {
-				if (onChannelMessage.isValid()) {
-					//onChannelMessage.call(target, user, msg);
-					onChannelMessage.call("#clever-pt", "user", "msg");
-				}
-			} else {
-				if (onPrivateMessage.isValid()) {
-					//onPrivateMessage.call(user, msg);
-				}
+	private function process(line) {
+		var reLooking = regex:Regex.new("^:[^ ]+ NOTICE \* :[^ ]+ Looking");
+		var reWelcome = regex:Regex.new("^:[^ ]+ 001 [^ ]+ :Welcome.*");
+		var rePrivmsg = regex:Regex.new("^:([^ ]+) PRIVMSG ([^ ]+) :(.*)");
+
+		if (reLooking.match(line)) {
+			/* Looking up for your hostname... */
+			this.debug(1, "Looking up for your hostname...");
+
+			// We are connected.
+			if (this.onConnected != null) {
+				this.onConnected();
 			}
-		}
-	} else {
-		debug(1, "No match: " + line);
-	}
-}
+		} else if (reWelcome.match(line)) {
+			/* 001 Welcome */
+			this.debug(1, "001 Welcome.");
+			this.connected = true;
 
-Void loop() {
-	while (tcp.isOpen()) {
-		debug(2, "tcp.isOpen() returned true.");
-		if (tcp.poll()) {
-			debug(2, "tcp.poll() returned true.");
-			String data = "";
+			// We authenticated.
+			if (this.onAuthenticated != null) {
+				this.onAuthenticated();
+			}
+		} else if (rePrivmsg.match(line)) {
+			/* PRIVMSG to a channel or user */
+			var user = this.extractUser(rePrivmsg.group(1));
+			var target = rePrivmsg.group(2);
+			var msg = rePrivmsg.group(3);
 
-			// Read all data until there's nothing more to read.
-			while (tcp.poll()) {
-				debug(2, "tcp.poll() returned true.");
-				Array<Byte> buffer = tcp.receive(1024);
-				if (tcp.good()) {
-					String bufferStr(buffer);
-					data = data + bufferStr;
+			if (user != "") {
+				if (target[0] == '#') {
+					if (this.onChannelMessage != null) {
+						this.onChannelMessage(target, user, msg);
+					}
 				} else {
-					break;
+					if (this.onPrivateMessage != null) {
+						this.onPrivateMessage(user, msg);
+					}
 				}
-				debug(2, "Data added. Polling more data...");
 			}
-			debug(2, "Data polled.");
-			
-			// Process the data: strings are splitted by a \n.
-			Array<String> lines = data.replace("\r", "").split("\n");
-			for (Int i = 0; i < lines.size(); i++) {
-				if (lines[i].trim() != "") {
-					process(lines[i].trim());
-				}				
-			}
+		} else {
+			this.debug(1, "No match: " + line);
 		}
+	}
 
-		// Sleep for 1s (low the CPU usage).
-		sleep(1000);
-		sleepCount++;
-		
-		// If we already sleep for more than 60s, send keep-alive ping.
-		if (connected && sleepCount >= 60) {
-			debug(1, "Sending keep-alive.");
-			keepAlive();
-			sleepCount = 0;
+	// ==================================
+	// == Public code
+
+	// Verbose settings (0 = no debug, 1 = IRC debug, 2 = full debug)
+	var verbose = 0;
+
+	// Callback functions
+	var onConnected = null;
+	var onAuthenticated = null;
+	var onChannelMessage = null;
+	var onPrivateMessage = null;
+
+	// Send USER command
+	function user(username, hostname, servername, realname) {
+		var s = "USER " + username + " " + hostname + " " + servername + " :" + realname + "\n";
+	        this.socket.send(s);
+	}
+
+	// Send NICK command
+	function nick(nickname) {
+		var s = "NICK " + nickname + "\n";
+		this.socket.send(s);
+	}
+
+	// Send JOIN command
+	function join(channel) {
+		var s = "JOIN " + channel + "\n";
+		this.socket.send(s);
+	}
+
+	// Send PRIVMSG command
+	function privmsg(target, msg) {
+	        var s = "PRIVMSG " + target + " :" + msg + "\n";
+        	this.socket.send(s);
+	}
+
+	// Connect function
+	function connect(host, port) {
+		this.sleepCount = 0;
+		this.connected = false;
+
+		this.socket = net:TcpSocket.new();
+		this.socket.setHost(host);
+		this.socket.setPort(port);
+		this.socket.setTimeout(1000);
+
+		this.socket.connect();
+
+		// TODO: fix socket.good() on TcpSocket.
+		return true;
+
+		if (this.socket.good()) {
+	                io:println("[" + this.socket.getError().toString() + "] " + this.socket.getErrorMessage());
+        	        return false;
+	        } else {
+                	return true;
+        	}
+	}
+
+	// Program loop function
+	function loop() {
+		while (this.socket.isOpen()) {
+			this.debug(2, "this.socket.isOpen() returned true.");
+			if (this.socket.poll()) {
+				this.debug(2, "this.socket.poll() returned true.");
+				var data = "";
+
+				// Read all data until there's nothing more to read.
+				while (this.socket.poll()) {
+					this.debug(2, "this.socket.poll() returned true.");
+					var buffer = this.socket.receive(1024);
+					if (this.socket.good()) {
+						data = data + buffer;
+					} else {
+						break;
+					}
+					this.debug(2, "Data added. Polling more data...");
+				}
+				this.debug(2, "Data polled.");
+
+				// Process the data: strings are splitted by a \n.
+				var lines = data.replace("\r", "").split("\n");
+				for (var i = 0; i < lines.size(); i++) {
+					if (lines[i].trim() != "") {
+						this.process(lines[i].trim());
+					}				
+				}
+			}
+
+			// Sleep for 1s (low the CPU usage).
+			sys:sleep(1000);
+			this.sleepCount++;
+
+			// If we already sleep for more than 60s, send keep-alive ping.
+			if (this.connected && this.sleepCount >= 60) {
+				this.debug(1, "Sending keep-alive.");
+				this.keepAlive();
+				this.sleepCount = 1;
+			}
 		}
 	}
 }
