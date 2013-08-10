@@ -44,6 +44,7 @@ class Irc {
 		var reLooking = regex:Regex.new("^:[^ ]+ NOTICE \* :[^ ]+ Looking");
 		var reWelcome = regex:Regex.new("^:[^ ]+ 001 [^ ]+ :Welcome.*");
 		var rePrivmsg = regex:Regex.new("^:([^ ]+) PRIVMSG ([^ ]+) :(.*)");
+		var reNotice  = regex:Regex.new("^:([^ ]+) NOTICE ([^ ]+) :(.*)");
 
 		if (reLooking.match(line)) {
 			/* Looking up for your hostname... */
@@ -79,6 +80,19 @@ class Irc {
 					}
 				}
 			}
+		} else if (reNotice.match(line)) {
+			/* NOTICE to a channel or user */
+                        var user = this.extractUser(reNotice.group(1));
+                        var target = reNotice.group(2);
+                        var msg = reNotice.group(3);
+
+                        if (user != "") {
+                                if (target[0] == '#') {
+                                        if (this.onChannelNotice != null) { this.onChannelNotice(target, user, msg); }
+                                } else {
+                                        if (this.onPrivateNotice != null) { this.onPrivateNotice(user, msg); }
+                                }
+                        }
 		} else {
 			this.debug(1, "No match: " + line);
 		}
@@ -95,6 +109,8 @@ class Irc {
 	var onAuthenticated = null;
 	var onChannelMessage = null;
 	var onPrivateMessage = null;
+	var onChannelNotice = null;
+	var onPrivateNotice = null;
 
 	// Send USER command
 	function user(username, hostname, servername, realname) {
