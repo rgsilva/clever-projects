@@ -1,0 +1,26 @@
+/*
+ * clever-bot
+ *
+ * https://github.com/rgsilva/clever-projects
+ * https://clever-lang.org
+ *
+ */
+
+// Verbose level (0 = no verbose)
+const VERBOSE = 0;
+
+// Server address 
+const BOT_SERVER = "chat.freenode.net";
+
+// Server port (note: SSL is not supported!)
+const BOT_PORT = 6667;
+
+// The bot's nickname
+const BOT_NICK = "clvbot123";
+
+// The bot's realname
+const BOT_REALNAME = "#clever bot";
+
+// The channels to where the bot should join (comma-separated)
+const BOT_CHANNELS = "#clever";
+

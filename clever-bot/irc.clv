@@ -1,3 +1,11 @@
+/*
+ * clever-bot
+ *
+ * https://github.com/rgsilva/clever-projects
+ * https://clever-lang.org
+ *
+ */
+
 import std.*;
 
 class Irc {

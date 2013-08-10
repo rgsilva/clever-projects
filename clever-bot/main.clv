@@ -1,23 +1,16 @@
 /*
- * Clever bot - the first IRC bot created on Clever language
- * https://github.com/clever-lang/clever
+ * clever-bot
  *
- * Ricardo Gomes da Silva/rgsilva
- * rg0s @ #clever
+ * https://github.com/rgsilva/clever-projects
+ * https://clever-lang.org
+ *
  */
-
-// Settings
-
-const SERVER = "chat.freenode.net";		// Host address
-const PORT = 6667;				// Host port
-const NICK = "clvbot123";			// Bot nickname
-const REALNAME = "#clever bot";			// Bot realname
-const CHANNEL = "#clever-pt";			// Bot channels
 
 // ------------------------------------------------------------------
 
 import std.*;
 import irc.*;
+import settings.*;
 
 var irc = Irc.new();
 
@@ -26,20 +19,20 @@ var irc = Irc.new();
 // Events code.
 
 function onConnected() {
-	irc.user(NICK, NICK, NICK, REALNAME);
-	irc.nick(NICK);
+	irc.user(BOT_NICK, BOT_NICK, BOT_NICK, BOT_REALNAME);
+	irc.nick(BOT_NICK);
 }
 
 function onAuthenticated() {
-	irc.join(CHANNEL);
+	irc.join(BOT_CHANNELS);
 }
 
 function onChannelMessage(channel, nick, message) {
-	irc.privmsg(channel, "O usuário " + nick + " disse no canal " + channel + " '" + message + "'.");
+	// Do nothing.
 }
 
 function onPrivateMessage(nick, message) {
-	io:println("private message!");
+	// Do nothing.
 }
 
 // ------------------------------------------------------------------
@@ -49,9 +42,9 @@ irc.onAuthenticated = onAuthenticated;
 irc.onChannelMessage = onChannelMessage;
 irc.onPrivateMessage = onPrivateMessage;
 
-irc.verbose = 2;
+irc.verbose = VERBOSE;
 
-if (irc.connect(SERVER, PORT)) {
+if (irc.connect(BOT_SERVER, BOT_PORT)) {
 	// Loop.
 	irc.loop();
 } else {
